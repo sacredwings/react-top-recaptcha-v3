@@ -1,0 +1,256 @@
+/* windows */
+/* psql -h localhost -p 5454 -U postgres postgres < c:\node\social-framework\init_db.psql */
+
+/* ubuntu */
+/* psql -h localhost -p 5454 -U postgres postgres < /var/www/social-framework/init_db.psql */
+
+CREATE DATABASE social_network;
+\c social_network;
+
+/* -------------------------------------------------- */
+/* авторизация */
+CREATE TABLE sf_token (
+	id              serial primary key,
+	token           character varying (32) NOT NULL,
+	user_id         bigint NOT NULL,
+	ip              character varying (255) NOT NULL,
+	browser         character varying (255),
+	create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* -------------------------------------------------- */
+/* группы */
+CREATE TABLE sf_group (
+    id              serial primary key,
+
+    title           character varying (255) NOT NULL,
+    active          boolean,	/* активен (y|n). */
+    visible         boolean, /* видна в списках */
+    opened          boolean, /* открытая группа */
+    type            smallint,
+    delete          boolean,
+
+    ban_date        timestamp with time zone,
+    ban_reason      character varying (255),
+
+    photo           bigint,	/* фотография. */
+    logo            bigint,	/* логотип. */
+    www             character varying (255),	/* www-страница. */
+    phone           character varying (255),	/* телефон. */
+    profile         character varying (2000),	/* направления деятельности. */
+
+    info	        character varying (2000),	/* дополнительные заметки. */
+    status          character varying (255),	/* профессия. */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* -------------------------------------------------- */
+/* пользователи */
+CREATE TABLE sf_user (
+    id              serial primary key,	/* id пользователя. */
+    timestamp_x     timestamp with time zone, /* последнее изменение. */
+    email	        character varying (100), /* e-mail адрес. */
+    phone	        character varying (100), /* телефон. */
+    login           character varying (50) NOT NULL, /* имя входа. */
+    password        character varying (60) NOT NULL, /* хеш от пароля. */
+    checkword       character varying (50),	/* контрольная строка для смены пароля. */
+    active	        boolean,	/* активен (y|n). */
+
+    first_name	    character varying (50),	/* имя. */
+    last_name	    character varying (50),	/* фамилия. */
+    second_name	    character varying (50),	/* отчество. */
+    photo           int, /* фотография. */
+
+    ban_date        timestamp with time zone, /* время, до которого получен бан */
+    ban_reason      character varying (255), /* причина бана */
+
+    gender	        character varying (1),	/* пол. */
+    birthday        date,	/* дата рождения. */
+    www	            character varying (255),	/* www-страница. */
+    profession      character varying (255),	/* профессия. */
+
+    info	        character varying (2000),	/* дополнительные заметки. */
+    status          character varying (255),	/* профессия. */
+
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* уникальный EMAIL */
+/* ALTER TABLE public.users ADD CONSTRAINT EMAIL UNIQUE (EMAIL); */
+CREATE UNIQUE INDEX unique_users_email ON sf_user (email);
+
+/* уникальный LOGIN / индексированный */
+CREATE UNIQUE INDEX unique_users_login ON sf_user (login);
+
+/* создание пользователя ADMIN */
+INSERT INTO sf_user (login, password, email, first_name, create_date) VALUES ('admin', '$2b$10$zdWLdO9rHZgTiTkPKQYsY.6TBAMH.pTt6MZcZcb7i85.2vCA7uUkq', 'stronggenius@mail.ru', 'admin', NOW());
+INSERT INTO sf_user (login, password, email, first_name, create_date) VALUES ('test1', '$2b$10$zdWLdO9rHZgTiTkPKQYsY.6TBAMH.pTt6MZcZcb7i85.2vCA7uUkq', 'test1@mail.ru', 'test1', NOW());
+INSERT INTO sf_user (login, password, email, first_name, create_date) VALUES ('test2', '$2b$10$zdWLdO9rHZgTiTkPKQYsY.6TBAMH.pTt6MZcZcb7i85.2vCA7uUkq', 'test2@mail.ru', 'test2', NOW());
+
+/* -------------------------------------------------- */
+/* сообщения */
+CREATE TABLE sf_message (
+    id              serial primary key,	/* id пользователя. */
+
+    from_id         bigint NOT NULL, /* от кого (обязательное поле) */
+    to_id           bigint NOT NULL, /* кому (обязательное поле), */
+
+    message         text, /* сообщение (обязательное поле), */
+    message_type    character varying (1), /* тип сообщения: p - персональное, s - системное. */
+    read            boolean,
+    important       boolean,
+
+    files           jsonb, /* массив id файлов */
+
+    delete_from     boolean,
+    delete_to       boolean,
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* -------------------------------------------------- */
+/* файлы */
+CREATE TABLE sf_file (
+    id	            serial primary key,
+
+    /* параметры файла */
+    size            bigint NOT NULL,
+    path            character varying (255) NOT NULL,
+    type            character varying (100) NOT NULL,
+    url             character varying (255) NOT NULL,
+
+    title           character varying (255) NOT NULL,
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* альбомы */
+CREATE TABLE sf_album (
+    id	            serial primary key,
+
+    owner_id        bigint NOT NULL, /* где */
+    module          character varying (100) NOT NULL, /* в каком модуле (фото, видео) */
+
+    title           character varying (255) NOT NULL, /* название видео */
+    text            text, /* текст */
+    image_id        bigint, /* id файла */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* альбомы, связи */
+CREATE TABLE sf_album_link (
+    id	            serial primary key,
+
+    album_id        bigint NOT NULL, /* альбом */
+    object_id       bigint NOT NULL, /* какому объекту принадлежит */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+/* уникальный объект и альбом / индексированный */
+CREATE UNIQUE INDEX unique_album_object ON sf_album_link (album_id, object_id);
+
+/* -------------------------------------------------- */
+/* фото */
+CREATE TABLE sf_photo (
+    id	            serial primary key,
+
+    from_id         bigint NOT NULL, /* от кого */
+    owner_id        bigint NOT NULL, /* где */
+
+    title           character varying (255) NOT NULL, /* название фото */
+    text            text, /* текст */
+    file            bigint NOT NULL, /* id файла */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+/* видео */
+CREATE TABLE sf_video (
+    id	            serial primary key,
+
+    from_id         bigint NOT NULL, /* от кого */
+    owner_id        bigint NOT NULL, /* где */
+
+    title           character varying (255) NOT NULL, /* название видео */
+    text            text, /* текст */
+    file            bigint NOT NULL, /* id файла */
+    image_id        bigint, /* id файла */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* ФОРУМ */
+/* обсуждения */
+CREATE TABLE sf_topic (
+    id	            serial primary key,
+
+    from_id         bigint NOT NULL, /* от кого */
+    owner_id        bigint NOT NULL, /* где */
+
+    title           character varying (255) NOT NULL, /* название дискусии */
+    text            text, /* текст */
+    files           jsonb, /* массив id файлов */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* БЛОГ */
+/* посты */
+CREATE TABLE sf_post (
+    id	            serial primary key,
+
+    from_id         bigint NOT NULL, /* от кого */
+    owner_id        bigint NOT NULL, /* где */
+
+    text            text, /* текст */
+    files           jsonb, /* массив id файлов */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* КОММЕНТАРИИ */
+CREATE TABLE sf_comment (
+    id              serial primary key,
+
+    from_id         bigint NOT NULL, /* от кого */
+    object_id       bigint NOT NULL, /* какому объекту принадлежит */
+
+    module          character varying (100) NOT NULL,
+    text            text, /* текст */
+    files           jsonb, /* массив id файлов */
+
+    /* о создании */
+    create_id       bigint NOT NULL, /* кто создал */
+    create_date     timestamp with time zone DEFAULT NOW()
+);
+
+/* -------------------------------------------------- */
+/* пользователи - во время регистрации */
+CREATE TABLE sf_user_no_reg (
+    id serial primary key,
+    phone bigint,
+    login character varying(50) NOT NULL,
+    email character varying(100) NOT NULL,
+    password character varying(60) NOT NULL,
+    first_name character varying(30) NOT NULL,
+    gender character varying(1),
+    code character varying(32) NOT NULL,
+
+    create_date timestamp with time zone DEFAULT NOW()
+);

@@ -1,89 +1,102 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 
-const propTypes = {
-  elementID: PropTypes.string,
-  verifyCallbackName: PropTypes.string,
-  verifyCallback: PropTypes.func,
-  sitekey: PropTypes.string.isRequired,
-  action: PropTypes.string.isRequired
+const isBrowser = typeof window !== 'undefined'
+
+function isLoaded () {
+  return (
+      isBrowser &&
+      typeof window.grecaptcha !== 'undefined'
+  )
 }
 
-const defaultProps = {
-  elementID: 'g-recaptcha',
-  verifyCallbackName: 'verifyCallback'
+function isReady () {
+  return isLoaded() &&
+      typeof window.grecaptcha.execute === 'function'
 }
-
-const isReady = () =>
-  typeof window !== 'undefined' &&
-  typeof window.grecaptcha !== 'undefined' &&
-  typeof window.grecaptcha.execute !== 'undefined'
-
-let readyCheck
 
 class ReCaptcha extends Component {
+  static propTypes = {
+    verifyCallback: PropTypes.func.isRequired,
+    sitekey: PropTypes.string.isRequired,
+    action: PropTypes.string.isRequired
+  }
+
   constructor (props) {
     super(props)
+
+    this._updateReadyState =
+        this._updateReadyState.bind(this)
+
+    this._setReady =
+        this._setReady.bind(this)
+
     this.state = {
       ready: isReady()
+    }
+
+    if (isBrowser) {
+      this.readyCheck = this.state.ready
+          ? null
+          : window.setInterval(
+              this._updateReadyState,
+              isLoaded() ? 0 : 1000
+          )
     }
   }
 
   componentDidMount () {
     if (this.state.ready) {
       this.execute()
-    } else {
-      readyCheck = setInterval(this._updateReadyState, 1000);
     }
   }
 
   componentDidUpdate (_, prevState) {
-    if (this.state.ready && !prevState.ready) {
+    if (
+        this.state.ready &&
+        !prevState.ready
+    ) {
       this.execute()
     }
   }
 
   componentWillUnmount () {
-    clearInterval(readyCheck)
-  }
-
-  execute = () => {
-    const {
-      sitekey,
-      verifyCallback,
-      action,
-    } = this.props
-
-    if (this.state.ready) {
-      window.grecaptcha.execute(sitekey, { action })
-        .then(token => {
-          if (typeof verifyCallback !== 'undefined') {
-            verifyCallback(token)
-          }
-        })
+    if (this.readyCheck !== null) {
+      clearInterval(this.readyCheck)
     }
   }
 
-  _updateReadyState = () => {
-    if (isReady()) {
-      this.setState(() => ({ ready: true }))
-      clearInterval(readyCheck)
+  execute () {
+    const {
+      sitekey,
+      verifyCallback,
+      action
+    } = this.props
+
+    window.grecaptcha.execute(sitekey, { action })
+        .then(verifyCallback)
+  }
+
+  _setReady () {
+    this.setState(
+        () => ({ ready: true })
+    )
+  }
+
+  _updateReadyState () {
+    if (isLoaded()) {
+      window.grecaptcha.ready(
+          this._setReady
+      )
+
+      clearInterval(this.readyCheck)
+      this.readyCheck = null
     }
   }
 
   render () {
-    return this.state.ready ? (
-      <div
-        id={this.props.elementID}
-        data-verifycallbackname={this.props.verifyCallbackName}
-      />
-    ) : (
-      <div id={this.props.elementID} className='g-recaptcha' />
-    )
+    return <></>
   }
 }
-
-ReCaptcha.propTypes = propTypes
-ReCaptcha.defaultProps = defaultProps
 
 export default ReCaptcha

@@ -27,8 +27,17 @@ import { loadReCaptcha } from 'react-top-recaptcha-v3'
 
 ...
 
-componentDidMount() {
-  loadReCaptcha(your_site_key, callback);
+componentDidMount () {
+	loadRecaptcha({
+		key:'your_site_key',
+		id: 'uniqueId'
+	})
+	.then(id => {
+		console.log('ReCaptcha loaded', id)
+	})
+	.catch((e, id) => {
+		console.error('Error when load ReCaptcha', id, e)
+	})
 }
 ```
 

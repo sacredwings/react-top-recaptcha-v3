@@ -1,6 +1,6 @@
 {
   "name": "react-top-recaptcha-v3",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "This library helps to integrate google recaptcha into your react project easily. For 17 React",
   "keywords": [
     "react",
@@ -23,11 +23,13 @@
   "author": "stronggenius",
   "license": "ISC",
   "devDependencies": {
-    "@babel/cli": "^7.12.16",
-    "@babel/core": "^7.12.13",
-    "@babel/node": "^7.12.13",
+    "@babel/node": "^7.12.17",
     "@babel/plugin-proposal-class-properties": "^7.12.13",
-    "@babel/preset-env": "^7.12.13",
+    "@babel/preset-env": "^7.12.17",
     "@babel/preset-react": "^7.12.13"
+  },
+  "dependencies": {
+    "prop-types": "^15.7.2",
+    "react": "^17.0.1"
   }
 }
